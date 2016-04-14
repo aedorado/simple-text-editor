@@ -30,16 +30,20 @@ body {
 	position: absolute;
 	background: black;
     color: white;
-    width: 120px;
+    width: 125px;
     font-size: 2em;
-    border-radius: 4px;
+    border-radius: 5px;
     transform: translate(-50%, 10%);
 }
 
 .tooltip-option {
 	width: 35px;
-    margin-left: 10px;
+    /*margin-left: 0px;*/
     cursor: pointer;
+    background-color: black;
+    border: none;
+    color: white;
+    font-size: 1em;
 }
 
 #links div:nth-child(odd) {

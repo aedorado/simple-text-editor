@@ -65,6 +65,7 @@ $(document).keydown(function(e) {
 		if (e.keyCode == 13) {	// code for enter key
 			e.preventDefault();
 			var text = (extractContentsFromCaret());
+			console.log(text);
 			// var text = (extractContentsFromCaret().textContent);
 			text = text.split('<').join('&lt;');
 			text = text.split('>').join('&gt;');
@@ -263,22 +264,32 @@ function handleDragEnd(e) {
 
 
 var tooltip = document.getElementById('tooltip');
-var selToChange = null;
 function showTooltip(e) {
 	tooltip.style.left = e.pageX;
 	tooltip.style.top = e.pageY;
 	tooltip.style.display = 'block';
 	selToChange = window.getSelection();
-	console.log(selToChange);
 }
 
 var tooltipOptions = document.querySelectorAll('.tooltip-option');
 [].forEach.call(tooltipOptions, function(option) {
 	option.addEventListener('click', function(e) {
 		// e.preventDefault();
-		console.log(selToChange);
+		
+		if (e.target.id === 'tooltip-bold') {
+			document.execCommand('bold');
+		} else if (e.target.id === 'tooltip-und') {
+			document.execCommand('underline');
+		} else if (e.target.id === 'tooltip-red') {
+			if (window.getSelection().anchorNode.parentElement.tagName === 'P') {	// not already red
+				document.execCommand('styleWithCSS', false, true);
+				document.execCommand('foreColor', false, "rgb(255,0,0)");			// make it red
+			} else if (window.getSelection().anchorNode.parentElement.tagName === 'SPAN') {	// alread red
+				document.execCommand("removeFormat", false, "foreColor");					// remove red color
+			}
+		}
+
 		console.log(e.target.id);
-		document.execCommand('bold');
 
 		tooltip.style.display = 'none';
 	}, false);
