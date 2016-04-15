@@ -3,12 +3,13 @@ var isfocus = false;
 var focusOn;
 var caretPos;
 
-$(document).keydown(function(e) {
-	// console.log(e.keyCode);
-	
+document.getElementsByClassName('added-last')[0].addEventListener('focus', pfocus, false);
+document.getElementsByClassName('added-last')[0].addEventListener('blur', pblur, false);
+document.getElementsByClassName('added-last')[0].addEventListener('dblclick', showTooltip, false);
+
+document.addEventListener('keydown', function(e) {
 	getPositionDetails = function() {
-		// Get the current cusor position
-		var range = window.getSelection().getRangeAt(0)
+		var range = window.getSelection().getRangeAt(0);	// Get the current cusor position
 		// Create a new range to deal with text before the cursor
 		var pre_range = document.createRange();
 		// Have this range select the entire contents of the editable div
@@ -29,8 +30,6 @@ $(document).keydown(function(e) {
 	}
 
 	placeCaretAtEnd = function(el) {
-	    // if (typeof window.getSelection != "undefined"
-	            // && typeof document.createRange != "undefined") {
         var range = document.createRange();
         range.selectNodeContents(el);
         range.collapse(false);
@@ -38,13 +37,6 @@ $(document).keydown(function(e) {
         sel.removeAllRanges();
         sel.addRange(range);
 	    el.focus();
-	    // } 
-	    // else if (typeof document.body.createTextRange != "undefined") {
-	    //     var textRange = document.body.createTextRange();
-	    //     textRange.moveToElementText(el);
-	    //     textRange.collapse(false);
-	    //     textRange.select();
-	    // }
 	}
 
 	extractContentsFromCaret = function() {
@@ -52,44 +44,49 @@ $(document).keydown(function(e) {
 	    if (sel.rangeCount) {
 	        var selRange = sel.getRangeAt(0);
 	        var blockEl = selRange.endContainer.parentNode;
+	        if (blockEl.tagName !== 'P') {
+	        	blockEl = blockEl.nextSibling;
+	        }
 	        if (blockEl) {
-	            var range = selRange.cloneRange();
-	            range.selectNodeContents(blockEl);
-	            range.setStart(selRange.endContainer, selRange.endOffset);
-	            return range.extractContents().textContent;
+	        	var range = selRange.cloneRange();
+	        	range.selectNodeContents(blockEl);
+	        	range.setStart(selRange.endContainer, selRange.endOffset);
+	        	return range.extractContents();
+	        	// return range.extractContents().textContent;
 	        }
 	    }
+	}
+
+	insertAfter = function(newNode, referenceNode) {
+    	referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
 	}
 
 	if (focusOn) {	
 		if (e.keyCode == 13) {	// code for enter key
 			e.preventDefault();
-			var text = (extractContentsFromCaret());
-			console.log(text);
-			// var text = (extractContentsFromCaret().textContent);
-			text = text.split('<').join('&lt;');
-			text = text.split('>').join('&gt;');
-			console.log(text);
+			var frag = (extractContentsFromCaret());
+			console.log(frag.textContent);
 
-			if (text.charAt(0) == ' ') {
-				text = text.substring(1);
+			if (frag.textContent.charAt(0) == ' ') {
+				frag.textContent = frag.textContent.substring(1);
 			}
 
-			$('.added-last').removeClass('added-last');	
-			// $('#notepad').append('<p class="notepad-paragraph added-last" contenteditable="true"></p>');
-			$('<p class="notepad-paragraph added-last" contenteditable="true"></p>').insertAfter(focusOn);
-			// $('.added-last').html(extractContentsFromCaret().textContent);
-			$('.added-last').html(text);
-			$('.added-last').on('focus', pfocus);
-			$('.added-last').on('blur', pblur);
-			$('.added-last').focus();
-			$('.added-last').on('dblclick', showTooltip);
-			// $('.added-last').text('');
+			document.getElementsByClassName('added-last')[0].classList.remove('added-last');	
+			var newp = document.createElement('p');
+			newp.classList.add('notepad-paragraph');
+			newp.classList.add('added-last');
+			newp.setAttribute('contenteditable', 'true');
+			insertAfter(newp, focusOn);
+			document.getElementsByClassName('added-last')[0].appendChild(frag);
+			newp.addEventListener('focus', pfocus, false);
+			newp.addEventListener('blur', pblur, false);
+			newp.addEventListener('dblclick', showTooltip, false);
+			newp.focus();
 		}
 
 		getPositionDetails();
 		if (at_start) {
-			if (e.keyCode == 37) {	// LEFT key
+			if (e.keyCode == 37 || e.keyCode == 38) {	// LEFT key
 				e.preventDefault();
 				// console.log('change focus backwards');
 				if (focusOn.previousSibling !== null) {
@@ -126,7 +123,7 @@ $(document).keydown(function(e) {
 		}
 
 		if (at_end) {
-			if (e.keyCode == 39) {	// RIGHT key
+			if (e.keyCode == 39 || e.keyCode == 40) {	// RIGHT key
 				// console.log('change focus forward');
 				e.preventDefault();
 				if (focusOn.nextSibling != null) {
@@ -159,14 +156,8 @@ $(document).keydown(function(e) {
 
 		}
 
-	} else {
-		console.log('NO FOCUS!');
 	}
-});
-
-$('.added-last').on('focus', pfocus);
-$('.added-last').on('blur', pblur);
-$('.added-last').on('dblclick', showTooltip);
+}, false);
 
 function pfocus() {
 	isfocus = true;
@@ -176,10 +167,6 @@ function pfocus() {
 function pblur() {
 	isfocus = false;
 	focusOn = undefined;
-}
-
-function caretPosition() {
-    caretPos = (window.getSelection().getRangeAt(0).startOffset);
 }
 
 document.getElementById('check-editable').addEventListener('click', function() { 
@@ -229,10 +216,12 @@ function handleDragOver(e) {
 }
 
 function handleDragEnter(e) {
+	console.log(this);
 	this.classList.add('over');
 }
 
 function handleDragLeave(e) {
+	console.log(this);
 	this.classList.remove('over');
 }
 
@@ -262,7 +251,6 @@ function handleDragEnd(e) {
 }
 
 
-
 var tooltip = document.getElementById('tooltip');
 function showTooltip(e) {
 	tooltip.style.left = e.pageX;
@@ -274,71 +262,56 @@ function showTooltip(e) {
 var tooltipOptions = document.querySelectorAll('.tooltip-option');
 [].forEach.call(tooltipOptions, function(option) {
 	option.addEventListener('click', function(e) {
-		// e.preventDefault();
-		
+		// e.preventDefault();		
 		if (e.target.id === 'tooltip-bold') {
 			document.execCommand('bold');
 		} else if (e.target.id === 'tooltip-und') {
 			document.execCommand('underline');
 		} else if (e.target.id === 'tooltip-red') {
-			if (window.getSelection().anchorNode.parentElement.tagName === 'P') {	// not already red
+			var parentNodeColor = window.getSelection().anchorNode.parentElement.style.color;
+			if (parentNodeColor === '') {	// not already red
 				document.execCommand('styleWithCSS', false, true);
-				document.execCommand('foreColor', false, "rgb(255,0,0)");			// make it red
-			} else if (window.getSelection().anchorNode.parentElement.tagName === 'SPAN') {	// alread red
-				document.execCommand("removeFormat", false, "foreColor");					// remove red color
+				document.execCommand('foreColor', false, "rgb(255,0,0)");		// make it red
+			} else {	// already red
+				document.execCommand('styleWithCSS', false, true);				// remove red color
+				document.execCommand('foreColor', false, "rgb(0,0,0)");					
 			}
 		}
-
-		console.log(e.target.id);
 
 		tooltip.style.display = 'none';
 	}, false);
 });
 
-
-
-function clone(obj) {
-    if (null == obj || "object" != typeof obj) return obj;
-    var copy = obj.constructor();
-    for (var attr in obj) {
-        if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
-    }
-    return copy;
+function textNodesUnder(el){
+	var n, a=[], walk=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null,false);
+	while (n = walk.nextNode()) {
+		a.push(n.textContent);
+		// console.log(n.textContent);
+	}
+	return a.join('');
 }
-
-/*
-
-function setColor() {
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand('foreColor', false, "rgba(0,0,0,0.5)");
-}
-
- */
 
 var linksdiv = document.getElementById('links');
 function consolidateLinks() {
 	var allParagraphs = document.querySelectorAll('p');
 	var content = '';
 	[].forEach.call(allParagraphs, function(para) {
-		content += para.innerHTML;
+		content += textNodesUnder(para);	// para.innerHTML
+		console.log(content);
 	});
 
-	var links = content.match(/&lt;a&gt;.*?&lt;\/a&gt;/g) || [];
+	var links = content.match(/<a>.*?<\/a>/g) || [];
+	// var links = content.match(/&lt;a&gt;.*?&lt;\/a&gt;/g) || [];
 	[].forEach.call(links, function(link) {
-		link = link.replace(/&lt;a&gt;/g, '');
-		link = link.replace(/&lt;\/a&gt;/g, '');
+		link = link.replace(/<a>/g, '');
+		link = link.replace(/<\/a>/g, '');
 
 		var newdiv = document.createElement('div');
 		var newlink = document.createElement('a');
 		newlink.appendChild(document.createTextNode(link));
 		newdiv.appendChild(newlink);
 		linksdiv.appendChild(newdiv);
-		// console.log(link);
 	});
-	// for (i = 0; i < content.length; i++) {
-		// console.log(content.charAt(i));
-	// }
-
 }
 
 function clearAllLinks() {
