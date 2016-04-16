@@ -1,11 +1,18 @@
 var notepad = document.getElementById('notepad');
 var isfocus = false;	// tells is there is focus on any of the paragraphs or not
 var focusOn;
-var caretPos;
 
-document.getElementsByClassName('added-last')[0].addEventListener('focus', pfocus, false);
-document.getElementsByClassName('added-last')[0].addEventListener('blur', pblur, false);
-document.getElementsByClassName('added-last')[0].addEventListener('dblclick', showTooltip, false);
+var placeholder = document.getElementsByClassName('placeholder')[0];
+
+placeholder.addEventListener('focus', pfocus, false);
+placeholder.addEventListener('blur', pblur, false);
+placeholder.addEventListener('dblclick', showTooltip, false);
+placeholder.addEventListener('dragstart', handleDragStart, false);
+placeholder.addEventListener('dragenter', handleDragEnter, false);
+placeholder.addEventListener('dragover', handleDragOver, false);
+placeholder.addEventListener('dragleave', handleDragLeave, false);
+placeholder.addEventListener('drop', handleDrop, false);
+placeholder.addEventListener('dragend', handleDragEnd, false);
 
 function pfocus() {
 	isfocus = true;
@@ -17,175 +24,16 @@ function pblur() {
 	focusOn = undefined;
 }
 
-document.addEventListener('keydown', function(e) {
-
-	placeCaretAtEnd = function(el) {	// places the caret at the end to element el
-        var range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(false);
-        var sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-	    el.focus();
+placeholder.addEventListener('click', removePlaceholder, false);
+function removePlaceholder(e) {
+	while (this.firstChild) {
+		this.removeChild(this.firstChild);
 	}
+	this.classList.remove('placeholder');
+	this.removeEventListener('click', removePlaceholder);
+}
 
-	// extracts content from the start of the caret till the end of the 
-	extractContentsFromCaret = function() {
-	    var sel = window.getSelection();
-	    if (sel.rangeCount) {
-	        var selRange = sel.getRangeAt(0);
-	        var blockEl = selRange.endContainer.parentNode;
-	        if (blockEl.tagName !== 'P') {		// this is the case when some style has been applied to the selection thus the
-	        	blockEl = blockEl.nextSibling;	// 
-	        }
-	        if (blockEl) {
-	        	var range = selRange.cloneRange();
-	        	range.selectNodeContents(blockEl);
-	        	range.setStart(selRange.endContainer, selRange.endOffset);
-	        	return range.extractContents();
-	        	// return range.extractContents().textContent;
-	        }
-	    }
-	}
-
-	// insert newNode after node
-	insertAfter = function(newNode, node) {
-    	node.parentNode.insertBefore(newNode, node.nextSibling);
-	}
-
-	// fucntion determines whether or not we are at the start or end of the current paragraph
-	getPositionDetails = function() {
-		var range = window.getSelection().getRangeAt(0);	// get the current cusor position
-		var preRange = document.createRange();	// create a new range to deal with text before the caret
-		preRange.selectNodeContents(focusOn);	// have this range select the entire contents of the editable div
-		preRange.setEnd(range.startContainer, range.startOffset);	// set the end point of this range to the start point of the caret
-		var this_text = preRange.cloneContents();	// fetch the contents of this range (text before the caret)
-		at_start = this_text.textContent.length === 0;	// if the text's length is 0, we're at the start of the div.
-		var postRange = document.createRange();	// repeat for text after the caret to determine if we're at the end.
-		postRange.selectNodeContents(focusOn);
-		postRange.setStart(range.endContainer, range.endOffset);
-		var next_text = postRange.cloneContents();
-		at_end = next_text.textContent.length === 0;
-	}
-
-	if (focusOn) {	
-		if (e.keyCode == 13) {	// code for enter key
-			e.preventDefault();
-			var frag = (extractContentsFromCaret());
-
-			if (frag.textContent.charAt(0) == ' ') {
-				frag.textContent = frag.textContent.substring(1);
-			}
-
-			document.getElementsByClassName('added-last')[0].classList.remove('added-last');	
-			var newp = document.createElement('p');
-			newp.classList.add('notepad-paragraph');
-			newp.classList.add('added-last');
-			newp.setAttribute('contenteditable', 'true');
-			insertAfter(newp, focusOn);
-			document.getElementsByClassName('added-last')[0].appendChild(frag);
-			newp.addEventListener('focus', pfocus, false);
-			newp.addEventListener('blur', pblur, false);
-			newp.addEventListener('dblclick', showTooltip, false);
-
-			// add draggable eventListeners
-			newp.addEventListener('dragstart', handleDragStart, false);
-  			newp.addEventListener('dragenter', handleDragEnter, false);
-  			newp.addEventListener('dragover', handleDragOver, false);
-  			newp.addEventListener('dragleave', handleDragLeave, false);
-  			newp.addEventListener('drop', handleDrop, false);
-			newp.addEventListener('dragend', handleDragEnd, false);
-
-			newp.focus();
-		}
-
-		getPositionDetails();	// check if caret is at start or end of the focusOn paragraph
-		if (at_start) {			// if @ start
-			if (e.keyCode == 37 || e.keyCode == 38) {	// LEFT key
-				// console.log('change focus backwards');
-				e.preventDefault();
-				if (focusOn.previousSibling !== null) {
-					focusOn = focusOn.previousSibling;	// change focus to the end of the previous paragraph
-					placeCaretAtEnd(focusOn);
-				}
-			}
-
-			// code to merge the bottom paragraph with the paragraph above
-			if (e.keyCode == 8) { // BACKSPACE key
-				e.preventDefault();
-				focusOn = focusOn.previousSibling;
-				focusOn.focus();	// bring focus to previous sibling
-
-				var children = focusOn.childNodes;
-				var textlast = children[children.length - 1];
-				var position = textlast.textContent.length;
-
-				focusOn.innerHTML += focusOn.nextSibling.innerHTML;	// append text
-				notepad.removeChild(focusOn.nextSibling);
-
-				var range = document.createRange();
-				range.setStart(textlast, position);
-				range.setEnd(textlast, position);
-
-				var sel = window.getSelection();
-				sel.removeAllRanges();
-				sel.addRange(range);
-			}
-
-		}
-
-		if (at_end) {
-			if (e.keyCode == 39 || e.keyCode == 40) {	// RIGHT key
-				// console.log('change focus forward');
-				e.preventDefault();
-				if (focusOn.nextSibling != null) {
-					focusOn = focusOn.nextSibling;	// change focus to the end of the previous paragraph
-					focusOn.focus();				// place caret at the start of the new focusOn paragraph
-				}
-			}
-
-			if (e.keyCode == 46) { // DELETE key
-				e.preventDefault();
-				
-				var children = focusOn.childNodes;
-				var textlast = children[children.length - 1];
-				var position = textlast.textContent.length;
-
-				focusOn.innerHTML += focusOn.nextSibling.innerHTML;
-				notepad.removeChild(focusOn.nextSibling);
-
-				var range = document.createRange();
-				range.setStart(textlast, position);
-				range.setEnd(textlast, position);
-
-				var sel = window.getSelection();
-				sel.removeAllRanges();
-				sel.addRange(range);
-			}
-
-		}
-
-	}
-}, false);
-
-document.getElementById('check-editable').addEventListener('click', function() { 
-	var allParagraphs = document.querySelectorAll('p');
-	if (this.checked) {
-		clearAllLinks();	// remove links from links div
-		[].forEach.call(allParagraphs, function(para) {
-			para.setAttribute('contenteditable', true);
-			para.setAttribute('draggable', false);
-		});
-	} else {
-		consolidateLinks();	// add links to linksdiv
-		[].forEach.call(allParagraphs, function(para) {
-			para.setAttribute('contenteditable', false);
-			para.setAttribute('draggable', true);
-		});
-	}
-}, false);
-
-
+// // DRAG EVENT HANDLERS
 var dragSrc = null;
 function handleDragStart(e) {
 	this.style.opacity = 0.4;
@@ -241,7 +89,9 @@ function showTooltip(e) {
 	tooltip.style.display = 'block';	// display tooltip
 	selToChange = window.getSelection();
 }
+// // DRAG EVENT HANDLERS END
 
+// TOOLTIP
 var tooltipOptions = document.querySelectorAll('.tooltip-option');
 [].forEach.call(tooltipOptions, function(option) {
 	option.addEventListener('click', function(e) {	// addEventListener to all the tooltip options
@@ -260,11 +110,11 @@ var tooltipOptions = document.querySelectorAll('.tooltip-option');
 				document.execCommand('foreColor', false, "rgb(0,0,0)");					
 			}
 		}
-
 		document.getElementById('tooltip').style.display = 'none';
 	}, false);
 });
 
+// // LINKS
 // return all the text under the element el
 function textUnder(el) {
 	var n;
